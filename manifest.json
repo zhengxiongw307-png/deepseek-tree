@@ -1,0 +1,16 @@
+{
+  "short_name": "tcs",
+  "name": "shishi",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/528/528105.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./tcs.html",
+  "background_color": "#111111",
+  "theme_color": "#165DFF",
+  "display": "standalone",
+  "orientation": "portrait"
+}
