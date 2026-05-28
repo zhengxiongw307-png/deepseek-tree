@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 
 <html lang="zh-CN">
 
@@ -32,7 +32,7 @@
 
   top: 0; left: 0; width: 100vw; height: 100vh;
 
-  background: #111111;
+  background: #111111;: #111111;: #111111;: #111111;
 
   z-index: 99999;
 
@@ -209,23 +209,30 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 .tip { font-size: 12px; color: #aaa; margin-top: 5px; }
 
    /* 当浏览器全屏，且系统强行进入【横屏】时 */
-@media (orientation: landscape) {
-    body {
-        /* 核心魔法：强行把整个网页画面旋转 -90 度（逆时针转回来） */
-        transform: rotate(-90deg);
-        
-        /* 重新定义旋转的中心点为屏幕左上角 */
-        transform-origin: left top;
-        
-        /* 关键：因为旋转了，我们要手动把原本的宽变成高，高变成宽 */
-        width: 100vh;
-        height: 100vw;
-        
-        /* 旋转后的物理位置修正 */
-        position: absolute;
-        top: 100%;
-        left: 0;
-    }
+/* ==========================================
+   终极完美版：只有当【系统硬要横屏】时才旋转，微信竖屏全屏不触发
+   ========================================== */
+@media (orientation: landscape) and (max-width: 1024px) {
+  /* 门道：利用 HTML 的全屏伪类，只有真正触发了系统级全屏才允许旋转 */
+  :fullscreen body, 
+  :-webkit-full-screen body {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh !important;
+    height: 100vw !important;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+  
+  :fullscreen #game,
+  :-webkit-full-screen #game {
+    grid-template-columns: repeat(20, 4.5vh);
+  }
+  :fullscreen .cell,
+  :-webkit-full-screen .cell { 
+    width: 4.5vh; height: 4.5vh; 
+  }
 }
 
 </style>
