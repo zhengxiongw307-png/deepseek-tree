@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 /* ==========================================
-   新增门道：全屏 App 启动引导遮罩样式
+   全屏 App 启动引导遮罩样式
    ========================================== */
 #app-launcher-overlay {
   position: fixed;
@@ -103,25 +103,32 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 }
 .score { font-size: 18px; margin: 15px 0 5px; }
 .tip { font-size: 12px; color: #aaa; margin-top: 5px; }
+
 /* ==========================================
-           完美复刻：手机浏览器全屏系统强行横屏时，逆时针转回竖屏
-           ========================================== */
- @media (orientation: landscape) and (max-width: 1024px) {
-            body {
-                /* 强行把整个网页画面逆时针旋转 90 度转回来 */
-                transform: rotate(-90deg);
-                transform-origin: left top;
-                
-                /* 宽变高，高变宽 */
-                width: 100vh !important;
-                height: 100vw !important;
-                
-                /* 位置修正，防止画面飞出屏幕 */
-                position: absolute;
-                top: 100%;
-                left: 0;
-            }
-        }
+   核心修改点：强行阻断并修正浏览器全屏横屏状态
+   ========================================== */
+@media (orientation: landscape) and (max-width: 1024px) {
+  body {
+    /* 强行把整个网页画面逆时针旋转 90 度，把躺着的画面拧正 */
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    
+    /* 颠倒长宽尺寸：旋转后的物理宽度要等于屏幕高度，物理高度等于屏幕宽度 */
+    width: 100vh !important;
+    height: 100vw !important;
+    
+    /* 重调绝对坐标，防止画面旋转后飞出可视区域 */
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+  
+  /* 针对横屏状态下微调游戏方格大小，防止在偏宽的手机屏幕上错位 */
+  #game {
+    grid-template-columns: repeat(20, 4.5vh);
+  }
+  .cell { width: 4.5vh; height: 4.5vh; }
+}
 </style>
 </head>
 <body>
@@ -146,23 +153,14 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 <div class="tip">提示：在游戏区域内【任意方向滑动】控制蛇的移动</div>
 
 <script>
-// ==========================================
-// 新增核心：利用点击手势权限，强行把网页撑满全屏
-// ==========================================
 function launchInFullscreen() {
   const docEl = document.documentElement;
   
-  // 1. 先申请全屏
   if (docEl.requestFullscreen) { docEl.requestFullscreen(); } 
-  else if (docEl.webkitRequestFullscreen) { docEl.webkitRequestFullscreen(); }
+  else if (docEl.webkitRequestFullscreen) { docEl.webkitRequestFullscreen(); } 
+  else if (docEl.msRequestFullscreen) { docEl.msRequestFullscreen(); }
 
-  // 2. 核心门道：全屏成功后，立刻强行锁死为竖屏 (portrait)
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock("portrait").catch(function(error) {
-      // 有的浏览器不支持锁死，捕获错误防止代码卡死
-      console.log("此浏览器不支持锁死方向: " + error);
-    });
-  }
+  document.getElementById("app-launcher-overlay").style.display = "none";
 }
 
 const size = 20;
