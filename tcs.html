@@ -133,12 +133,17 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 function launchInFullscreen() {
   const docEl = document.documentElement;
   
+  // 1. 先申请全屏
   if (docEl.requestFullscreen) { docEl.requestFullscreen(); } 
-  else if (docEl.webkitRequestFullscreen) { docEl.webkitRequestFullscreen(); } 
-  else if (docEl.msRequestFullscreen) { docEl.msRequestFullscreen(); }
+  else if (docEl.webkitRequestFullscreen) { docEl.webkitRequestFullscreen(); }
 
-  // 隐藏启动页，露出游戏
-  document.getElementById("app-launcher-overlay").style.display = "none";
+  // 2. 核心门道：全屏成功后，立刻强行锁死为竖屏 (portrait)
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock("portrait").catch(function(error) {
+      // 有的浏览器不支持锁死，捕获错误防止代码卡死
+      console.log("此浏览器不支持锁死方向: " + error);
+    });
+  }
 }
 
 const size = 20;
