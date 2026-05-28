@@ -103,6 +103,25 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 }
 .score { font-size: 18px; margin: 15px 0 5px; }
 .tip { font-size: 12px; color: #aaa; margin-top: 5px; }
+/* ==========================================
+           完美复刻：手机浏览器全屏系统强行横屏时，逆时针转回竖屏
+           ========================================== */
+ @media (orientation: landscape) and (max-width: 1024px) {
+            body {
+                /* 强行把整个网页画面逆时针旋转 90 度转回来 */
+                transform: rotate(-90deg);
+                transform-origin: left top;
+                
+                /* 宽变高，高变宽 */
+                width: 100vh !important;
+                height: 100vw !important;
+                
+                /* 位置修正，防止画面飞出屏幕 */
+                position: absolute;
+                top: 100%;
+                left: 0;
+            }
+        }
 </style>
 </head>
 <body>
