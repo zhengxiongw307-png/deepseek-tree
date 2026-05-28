@@ -24,10 +24,12 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden; /* 防止手机浏览器上下滑动橡皮筋回弹 */
+  overflow: hidden; 
   background: #111;
-  /* 阻止手机浏览器默认的下拉刷新手势 */
-  overscroll-behavior-y: contain; 
+  
+  /* 核心密码：同时阻止上下橡皮筋刷新和左右滑动手势 */
+  overscroll-behavior: none; 
+  touch-action: none; 
 }
 body {
   font-family: "Microsoft Yahei", sans-serif;
