@@ -1,22 +1,48 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="./manifest.json">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>贪吃蛇 - 亮度渐变·可反向</title>
+<meta name="x5-fullscreen" content="true">
+<meta name="x5-page-mode" content="app">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-/* 3. 核心门道：通过 CSS 抹去“网页感” */
+/* ==========================================
+   新增门道：全屏 App 启动引导遮罩样式
+   ========================================== */
+#app-launcher-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: #111111;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Microsoft Yahei", sans-serif;
+}
+.launch-btn {
+  background: #165DFF;
+  color: #fff;
+  border: none;
+  padding: 15px 40px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(22, 93, 255, 0.4);
+  margin-top: 20px;
+  transition: transform 0.2s;
+}
+.launch-btn:active { transform: scale(0.95); }
+
+/* 原有样式与移动端优化 */
 * {
-  /* 禁用长按弹出菜单（复制、选择等） */
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  /* 禁用点击高亮阴影 */
   -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 html, body {
@@ -26,17 +52,14 @@ html, body {
   height: 100%;
   overflow: hidden; 
   background: #111;
-  
-  /* 核心密码：同时阻止上下橡皮筋刷新和左右滑动手势 */
-  overscroll-behavior: none; 
-  touch-action: none; 
+  overscroll-behavior-y: contain; 
 }
 body {
   font-family: "Microsoft Yahei", sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* 居中对齐，更像手机 App 界面 */
+  justify-content: center; 
   color: #fff;
   box-sizing: border-box;
   padding: 10px;
@@ -44,7 +67,7 @@ body {
 h2 { margin: 0 0 10px; font-size: 20px; }
 .btns { margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .btn {
-  padding: 10px 16px; /* 增大点击区域，适合手指 */
+  padding: 10px 16px; 
   border: none;
   border-radius: 8px;
   background: #165DFF;
@@ -52,14 +75,13 @@ h2 { margin: 0 0 10px; font-size: 20px; }
   font-size: 14px;
   cursor: pointer;
 }
-.btn:active { background: #0e4bd9; } /* 用 :active 代替 :hover，给手指按下时的反馈 */
+.btn:active { background: #0e4bd9; } 
 
-/* 动态计算游戏区域大小，确保在各种手机屏幕上都能完美容纳 */
 #game {
   border: 3px solid #444;
   background: #000;
   display: grid;
-  grid-template-columns: repeat(20, 4.5vw); /* 使用视口单位适配不同屏幕 */
+  grid-template-columns: repeat(20, 4.5vw); 
   position: relative;
 }
 .cell { width: 4.5vw; height: 4.5vw; }
@@ -84,6 +106,13 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 </style>
 </head>
 <body>
+
+<div id="app-launcher-overlay">
+  <h3 style="margin:0; font-size:22px; letter-spacing:1px;">创意渐变贪吃蛇</h3>
+  <p style="color:#666; font-size:13px; margin:5px 0 15px;">点击启动进入全屏沉浸模式</p>
+  <button class="launch-btn" onclick="launchInFullscreen()">启动游戏 App</button>
+</div>
+
 <h2>贪吃蛇（独立应用版）</h2>
 <div class="btns">
   <button class="btn" onclick="start(180,'endless')">无尽·慢</button>
@@ -98,6 +127,20 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 <div class="tip">提示：在游戏区域内【任意方向滑动】控制蛇的移动</div>
 
 <script>
+// ==========================================
+// 新增核心：利用点击手势权限，强行把网页撑满全屏
+// ==========================================
+function launchInFullscreen() {
+  const docEl = document.documentElement;
+  
+  if (docEl.requestFullscreen) { docEl.requestFullscreen(); } 
+  else if (docEl.webkitRequestFullscreen) { docEl.webkitRequestFullscreen(); } 
+  else if (docEl.msRequestFullscreen) { docEl.msRequestFullscreen(); }
+
+  // 隐藏启动页，露出游戏
+  document.getElementById("app-launcher-overlay").style.display = "none";
+}
+
 const size = 20;
 let snake, food, dir, nextDir, score, loop;
 let speed = 180, mode = 'endless';
@@ -107,7 +150,6 @@ function init() {
   clearInterval(loop);
   restartBtn.style.display = 'none';
   const game = document.getElementById('game');
-  // 注意：清除时保留 restart 按钮
   game.querySelectorAll('.cell').forEach(c => c.remove());
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -199,7 +241,6 @@ function move() {
   draw();
 }
 
-// 保留键盘控制
 document.addEventListener('keydown', e => {
   if (e.key === 'ArrowUp') nextDir = 'up';
   if (e.key === 'ArrowDown') nextDir = 'down';
@@ -207,18 +248,16 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') nextDir = 'right';
 });
 
-// ========== 4. 核心门道：手机端全屏滑屏手势控制 ==========
+// 手机端全屏滑屏手势控制
 let touchStartX = 0;
 let touchStartY = 0;
 const gameContainer = document.getElementById('game');
 
-// 监听手指按下
 gameContainer.addEventListener('touchstart', e => {
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
 }, { passive: true });
 
-// 监听手指划动并判断方向
 gameContainer.addEventListener('touchmove', e => {
   if (!touchStartX || !touchStartY) return;
 
@@ -228,16 +267,12 @@ gameContainer.addEventListener('touchmove', e => {
   let diffX = touchEndX - touchStartX;
   let diffY = touchEndY - touchStartY;
   
-  // 设定一个滑动阈值（比如滑动超过30像素才触发），防止误触
   if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
     if (Math.abs(diffX) > Math.abs(diffY)) {
-      // 左右滑动明显
       nextDir = diffX > 0 ? 'right' : 'left';
     } else {
-      // 上下滑动明显
       nextDir = diffY > 0 ? 'down' : 'up';
     }
-    // 触发方向后重置起点，允许在一次连续滑动中多次转向
     touchStartX = touchEndX;
     touchStartY = touchEndY;
   }
