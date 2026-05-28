@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<link rel="manifest" href="./manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>贪吃蛇 - 亮度渐变·可反向</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+/* 3. 核心门道：通过 CSS 抹去“网页感” */
+* {
+  /* 禁用长按弹出菜单（复制、选择等） */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  /* 禁用点击高亮阴影 */
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* 防止手机浏览器上下滑动橡皮筋回弹 */
+  background: #111;
+  /* 阻止手机浏览器默认的下拉刷新手势 */
+  overscroll-behavior-y: contain; 
+}
+body {
+  font-family: "Microsoft Yahei", sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* 居中对齐，更像手机 App 界面 */
+  color: #fff;
+  box-sizing: border-box;
+  padding: 10px;
+}
+h2 { margin: 0 0 10px; font-size: 20px; }
+.btns { margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.btn {
+  padding: 10px 16px; /* 增大点击区域，适合手指 */
+  border: none;
+  border-radius: 8px;
+  background: #165DFF;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn:active { background: #0e4bd9; } /* 用 :active 代替 :hover，给手指按下时的反馈 */
+
+/* 动态计算游戏区域大小，确保在各种手机屏幕上都能完美容纳 */
+#game {
+  border: 3px solid #444;
+  background: #000;
+  display: grid;
+  grid-template-columns: repeat(20, 4.5vw); /* 使用视口单位适配不同屏幕 */
+  position: relative;
+}
+.cell { width: 4.5vw; height: 4.5vw; }
+.food { background: #ff3333; border-radius: 50%; }
+
+#restart {
+  display: none;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 15px 30px;
+  background: #ff4444;
+  color: #fff;
+  font-size: 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 10;
+}
+.score { font-size: 18px; margin: 15px 0 5px; }
+.tip { font-size: 12px; color: #aaa; margin-top: 5px; }
+</style>
+</head>
+<body>
+<h2>贪吃蛇（独立应用版）</h2>
+<div class="btns">
+  <button class="btn" onclick="start(180,'endless')">无尽·慢</button>
+  <button class="btn" onclick="start(80,'endless')">无尽·快</button>
+  <button class="btn" onclick="start(180,'life')">生命·慢</button>
+  <button class="btn" onclick="start(80,'life')">生命·快</button>
+</div>
+<div id="game">
+  <button id="restart">重新开始</button>
+</div>
+<div class="score">分数：<span id="score">0</span></div>
+<div class="tip">提示：在游戏区域内【任意方向滑动】控制蛇的移动</div>
+
+<script>
+const size = 20;
+let snake, food, dir, nextDir, score, loop;
+let speed = 180, mode = 'endless';
+const restartBtn = document.getElementById('restart');
+
+function init() {
+  clearInterval(loop);
+  restartBtn.style.display = 'none';
+  const game = document.getElementById('game');
+  // 注意：清除时保留 restart 按钮
+  game.querySelectorAll('.cell').forEach(c => c.remove());
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = document.createElement('div');
+      d.className = 'cell';
+      d.dataset.x = x;
+      d.dataset.y = y;
+      game.appendChild(d);
+    }
+  }
+  const cx = Math.floor(size/2), cy = Math.floor(size/2);
+  snake = [
+    {x: cx-1, y: cy},
+    {x: cx, y: cy},
+    {x: cx+1, y: cy},
+    {x: cx+2, y: cy}
+  ];
+  dir = nextDir = 'right';
+  score = 0;
+  document.getElementById('score').textContent = score;
+  randFood();
+  draw();
+}
+
+function randFood() {
+  let f;
+  do {
+    f = {
+      x: Math.floor(Math.random() * size),
+      y: Math.floor(Math.random() * size)
+    };
+  } while (snake.some(s => s.x === f.x && s.y === f.y));
+  food = f;
+}
+
+function draw() {
+  document.querySelectorAll('.cell').forEach(c => {
+    c.style.background = '';
+    c.classList.remove('food');
+  });
+  const len = snake.length;
+  snake.forEach((s, i) => {
+    const bright = Math.floor(80 + (i / len) * 155);
+    const cell = document.querySelector(`[data-x="${s.x}"][data-y="${s.y}"]`);
+    if (cell) cell.style.background = `rgb(0, ${bright}, 0)`;
+  });
+  const f = document.querySelector(`[data-x="${food.x}"][data-y="${food.y}"]`);
+  if (f) f.classList.add('food');
+}
+
+function move() {
+  dir = nextDir;
+  const head = {...snake[snake.length-1]};
+  switch (dir) {
+    case 'up': head.y--; break;
+    case 'down': head.y++; break;
+    case 'left': head.x--; break;
+    case 'right': head.x++; break;
+  }
+
+  if (mode === 'endless') {
+    if (head.x < 0) head.x = size - 1;
+    if (head.x >= size) head.x = 0;
+    if (head.y < 0) head.y = size - 1;
+    if (head.y >= size) head.y = 0;
+  }
+
+  let dead = false;
+  if (mode === 'life') {
+    if (head.x < 0 || head.x >= size || head.y < 0 || head.y >= size) {
+      dead = true;
+    }
+  }
+
+  if (dead) {
+    clearInterval(loop);
+    restartBtn.style.display = 'block';
+    return;
+  }
+
+  snake.push(head);
+  if (head.x === food.x && head.y === food.y) {
+    score += 10;
+    document.getElementById('score').textContent = score;
+    randFood();
+  } else {
+    snake.shift();
+  }
+  draw();
+}
+
+// 保留键盘控制
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp') nextDir = 'up';
+  if (e.key === 'ArrowDown') nextDir = 'down';
+  if (e.key === 'ArrowLeft') nextDir = 'left';
+  if (e.key === 'ArrowRight') nextDir = 'right';
+});
+
+// ========== 4. 核心门道：手机端全屏滑屏手势控制 ==========
+let touchStartX = 0;
+let touchStartY = 0;
+const gameContainer = document.getElementById('game');
+
+// 监听手指按下
+gameContainer.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+// 监听手指划动并判断方向
+gameContainer.addEventListener('touchmove', e => {
+  if (!touchStartX || !touchStartY) return;
+
+  let touchEndX = e.touches[0].clientX;
+  let touchEndY = e.touches[0].clientY;
+
+  let diffX = touchEndX - touchStartX;
+  let diffY = touchEndY - touchStartY;
+  
+  // 设定一个滑动阈值（比如滑动超过30像素才触发），防止误触
+  if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      // 左右滑动明显
+      nextDir = diffX > 0 ? 'right' : 'left';
+    } else {
+      // 上下滑动明显
+      nextDir = diffY > 0 ? 'down' : 'up';
+    }
+    // 触发方向后重置起点，允许在一次连续滑动中多次转向
+    touchStartX = touchEndX;
+    touchStartY = touchEndY;
+  }
+}, { passive: true });
+
+function start(sp, md) {
+  speed = sp;
+  mode = md;
+  init();
+  loop = setInterval(move, speed);
+}
+restartBtn.onclick = () => start(speed, mode);
+</script>
+</body>
+</html>
